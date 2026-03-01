@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abuja LULC Change Detection | GIS Portfolio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #fafaf8;
+      --accent: #1a6b3c;
+      --accent-light: #2d9e5f;
+      --accent-pale: #e8f5ee;
+      --gold: #c8922a;
+      --gold-pale: #fdf4e3;
+      --red: #c0392b;
+      --blue: #1a4a7a;
+      --blue-pale: #e8f0fa;
+      --mid: #4a4a4a;
+      --light: #f0efec;
+      --border: #e0ddd8;
+      --mono: 'DM Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--white);
+      color: var(--black);
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.2rem 4rem;
+      background: rgba(250,250,248,0.93);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--black); text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-size: 0.82rem; font-weight: 500; letter-spacing: 0.04em;
+      color: var(--mid); text-decoration: none; text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--accent); }
+    .nav-back {
+      font-size: 0.8rem; font-weight: 500; color: var(--accent);
+      text-decoration: none; border: 1.5px solid var(--accent);
+      padding: 0.4rem 1rem; border-radius: 2px; transition: all 0.2s;
+    }
+    .nav-back:hover { background: var(--accent); color: white; }
+
+    /* HAMBURGER */
+    .nav-hamburger {
+      display: none; flex-direction: column; justify-content: center;
+      gap: 5px; background: none; border: none; cursor: pointer;
+      padding: 0.3rem; z-index: 110;
+    }
+    .nav-hamburger span {
+      display: block; width: 22px; height: 2px;
+      background: var(--black); border-radius: 2px;
+      transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-origin: center;
+    }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* MOBILE DROPDOWN */
+    .nav-mobile-menu {
+      display: none; position: fixed; top: 57px; left: 0; right: 0; z-index: 99;
+      background: rgba(250,250,248,0.97); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      flex-direction: column;
+      transform: translateY(-8px); opacity: 0;
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+      pointer-events: none;
+    }
+    .nav-mobile-menu.open {
+      transform: translateY(0); opacity: 1;
+      pointer-events: all;
+    }
+    .nav-mobile-menu a {
+      font-family: 'Syne', sans-serif; font-size: 0.88rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--black); text-decoration: none;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s, background 0.2s;
+      display: block;
+    }
+    .nav-mobile-menu a:hover { color: var(--accent); background: var(--accent-pale); }
+    .nav-mobile-menu a.mobile-back {
+      color: var(--accent); font-size: 0.8rem; border-bottom: none;
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 52% 48%;
+      padding-top: 80px; overflow: hidden;
+    }
+    .hero-left {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 5rem 3rem 5rem 4rem;
+      max-width: 620px;
+    }
+    .hero-tag {
+      font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em;
+      color: var(--accent); text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .hero-tag::before {
+      content: ''; display: inline-block;
+      width: 22px; height: 2px; background: var(--accent);
+    }
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 3.4rem; font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.03em;
+      margin-bottom: 1.5rem; max-width: 500px;
+    }
+    .hero-title span { color: var(--accent); }
+    .hero-subtitle {
+      font-size: 1rem; font-weight: 300; line-height: 1.85;
+      color: var(--mid); max-width: 450px; margin-bottom: 2.5rem;
+    }
+    .hero-meta {
+      display: flex; gap: 2rem; flex-wrap: wrap; margin-bottom: 2.5rem;
+    }
+    .hero-meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .hero-meta-label {
+      font-family: var(--mono); font-size: 0.68rem;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--mid);
+    }
+    .hero-meta-value {
+      font-family: 'Syne', sans-serif; font-size: 0.9rem;
+      font-weight: 700; color: var(--black);
+    }
+    .hero-buttons { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--black); color: white; padding: 0.85rem 2rem;
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
+      letter-spacing: 0.04em; text-decoration: none; display: inline-block;
+      transition: all 0.25s;
+    }
+    .btn-primary:hover { background: var(--accent); transform: translateY(-2px); }
+    .btn-outline {
+      background: transparent; color: var(--black); padding: 0.85rem 2rem;
+      border: 1.5px solid var(--black);
+      font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500;
+      letter-spacing: 0.04em; text-decoration: none; display: inline-block;
+      transition: all 0.25s;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-2px); }
+
+    .hero-right {
+      background: var(--light); position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; padding: 2.5rem;
+    }
+    .map-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1rem; width: 100%; max-width: 460px;
+    }
+    .map-card {
+      background: white; border: 1px solid var(--border);
+      border-radius: 3px; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06); transition: transform 0.3s;
+    }
+    .map-card:hover { transform: translateY(-4px); }
+    .map-card-img {
+      width: 100%; aspect-ratio: 4/3;
+      background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 30%, #ef9a9a 60%, #ffcc80 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 0.66rem;
+      color: rgba(0,0,0,0.35); letter-spacing: 0.05em; text-align: center; padding: 0.5rem;
+    }
+    .map-card-img.map2024 {
+      background: linear-gradient(135deg, #ef9a9a 0%, #ffcc80 30%, #a5d6a7 60%, #80deea 100%);
+    }
+    .map-card-label {
+      padding: 0.5rem 0.75rem;
+      font-family: var(--mono); font-size: 0.68rem; font-weight: 500;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--mid);
+      border-top: 1px solid var(--border);
+    }
+    .hero-bg-text {
+      position: absolute; bottom: -30px; right: -20px;
+      font-family: 'Syne', sans-serif; font-size: 10rem; font-weight: 800;
+      color: rgba(26,107,60,0.05); letter-spacing: -0.05em; line-height: 1;
+      pointer-events: none; user-select: none;
+    }
+
+    /* STATS BAND */
+    .stats-band {
+      background: var(--black); padding: 3rem 4rem;
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 2rem; position: relative; overflow: hidden;
+    }
+    .stats-band::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--gold), var(--accent-light));
+    }
+    .stat-item { text-align: center; }
+    .stat-number {
+      font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800;
+      color: white; line-height: 1; margin-bottom: 0.4rem; letter-spacing: -0.02em;
+    }
+    .stat-number .accent { color: var(--accent-light); }
+    .stat-label {
+      font-family: var(--mono); font-size: 0.68rem;
+      letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.38);
+    }
+
+    /* SECTIONS */
+    section { padding: 6rem 4rem; }
+    .section-tag {
+      font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .section-tag::before {
+      content: ''; display: inline-block; width: 16px; height: 2px; background: var(--accent);
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800;
+      line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 1.25rem;
+    }
+    .section-intro {
+      font-size: 1rem; font-weight: 300; line-height: 1.85;
+      color: var(--mid); max-width: 660px; margin-bottom: 3rem;
+    }
+
+    /* CONTEXT */
+    .context-section {
+      background: var(--white);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: center;
+    }
+    .context-facts { display: flex; flex-direction: column; gap: 1.2rem; }
+    .fact-row {
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      padding: 1.35rem; border: 1px solid var(--border);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .fact-row:hover {
+      border-color: var(--accent);
+      box-shadow: 0 4px 18px rgba(26,107,60,0.08);
+    }
+    .fact-icon {
+      font-size: 1.3rem; flex-shrink: 0; width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--accent-pale); border-radius: 3px;
+    }
+    .fact-content h4 {
+      font-family: 'Syne', sans-serif; font-size: 0.93rem; font-weight: 700; margin-bottom: 0.28rem;
+    }
+    .fact-content p { font-size: 0.86rem; color: var(--mid); line-height: 1.6; }
+
+    /* METHODOLOGY */
+    .methodology-section { background: var(--light); }
+    .method-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+      gap: 1.5px; background: var(--border); border: 1px solid var(--border);
+    }
+    .method-step { background: var(--white); padding: 2rem; transition: background 0.25s; }
+    .method-step:hover { background: var(--accent-pale); }
+    .step-number {
+      font-family: 'Syne', sans-serif; font-size: 2.6rem; font-weight: 800;
+      color: var(--border); line-height: 1; margin-bottom: 0.9rem; transition: color 0.25s;
+    }
+    .method-step:hover .step-number { color: var(--accent-light); opacity: 0.4; }
+    .step-title {
+      font-family: 'Syne', sans-serif; font-size: 0.92rem; font-weight: 700; margin-bottom: 0.5rem;
+    }
+    .step-desc { font-size: 0.85rem; color: var(--mid); line-height: 1.65; }
+    .step-badge {
+      display: inline-block; margin-top: 0.85rem;
+      font-family: var(--mono); font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 0.2rem 0.52rem; background: var(--accent-pale); color: var(--accent); border-radius: 2px;
+    }
+
+    /* DATA TABLE */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .data-table th {
+      font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--mid); padding: 0.7rem 1.2rem; border-bottom: 2px solid var(--black); text-align: left;
+    }
+    .data-table td { padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .data-table tr:hover td { background: var(--accent-pale); }
+    .sensor-tag {
+      font-family: var(--mono); font-size: 0.7rem;
+      padding: 0.18rem 0.52rem; border-radius: 2px; font-weight: 500;
+    }
+    .tag-l8 { background: var(--gold-pale); color: var(--gold); }
+    .tag-s2 { background: var(--blue-pale); color: var(--blue); }
+
+    /* RESULTS */
+    .results-section { background: var(--white); }
+    .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-bottom: 4rem; }
+    .accuracy-cards { display: flex; flex-direction: column; gap: 1rem; }
+    .accuracy-card {
+      border: 1px solid var(--border); padding: 1.65rem;
+      position: relative; overflow: hidden;
+    }
+    .accuracy-card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px;
+    }
+    .accuracy-card.l8::before { background: var(--gold); }
+    .accuracy-card.s2::before { background: var(--blue); }
+    .accuracy-card-header {
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.2rem;
+    }
+    .accuracy-card-title { font-family: 'Syne', sans-serif; font-size: 0.93rem; font-weight: 700; }
+    .accuracy-card-sub {
+      font-family: var(--mono); font-size: 0.68rem; color: var(--mid);
+      letter-spacing: 0.05em; margin-top: 0.2rem;
+    }
+    .accuracy-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .metric-value {
+      font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800;
+      line-height: 1; letter-spacing: -0.02em;
+    }
+    .metric-value.gold { color: var(--gold); }
+    .metric-value.blue { color: var(--blue); }
+    .metric-label {
+      font-family: var(--mono); font-size: 0.67rem; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--mid); margin-top: 0.28rem;
+    }
+    .accuracy-bar { margin-top: 1rem; height: 5px; background: var(--light); border-radius: 3px; overflow: hidden; }
+    .accuracy-bar-fill { height: 100%; border-radius: 3px; transition: width 1.5s cubic-bezier(0.16,1,0.3,1); }
+    .l8 .accuracy-bar-fill { background: var(--gold); }
+    .s2 .accuracy-bar-fill { background: var(--blue); }
+
+    .chart-title { font-family: 'Syne', sans-serif; font-size: 0.93rem; font-weight: 700; margin-bottom: 1.4rem; }
+    .bar-chart { display: flex; flex-direction: column; gap: 1.2rem; }
+    .bar-meta { display: flex; justify-content: space-between; margin-bottom: 0.32rem; }
+    .bar-name { font-size: 0.84rem; font-weight: 500; }
+    .bar-value { font-family: var(--mono); font-size: 0.76rem; color: var(--mid); }
+    .bar-track { height: 9px; background: var(--light); border-radius: 2px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 2px; transition: width 1.8s cubic-bezier(0.16,1,0.3,1); }
+    .bar-2015 { background: var(--gold); }
+    .bar-2024 { background: var(--accent); }
+    .bar-legend { display: flex; gap: 1.5rem; margin-top: 1.4rem; }
+    .legend-dot {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-family: var(--mono); font-size: 0.68rem; color: var(--mid); letter-spacing: 0.05em;
+    }
+    .legend-dot::before { content: ''; width: 10px; height: 10px; border-radius: 2px; }
+    .legend-dot.y2015::before { background: var(--gold); }
+    .legend-dot.y2024::before { background: var(--accent); }
+
+    /* TRANSITIONS */
+    .transitions-section { background: var(--light); }
+    .transition-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(225px, 1fr)); gap: 1rem;
+    }
+    .transition-card {
+      background: var(--white); border: 1px solid var(--border);
+      padding: 1.65rem; transition: all 0.25s;
+    }
+    .transition-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.08); }
+    .transition-arrow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    .from-tag, .to-tag {
+      padding: 0.17rem 0.48rem; font-size: 0.68rem;
+      border-radius: 2px; font-family: var(--mono); letter-spacing: 0.04em;
+    }
+    .tag-veg { background: #e8f5e9; color: #2e7d32; }
+    .tag-urban { background: #ffebee; color: #c62828; }
+    .tag-open { background: #fff8e1; color: #f57f17; }
+    .arrow-icon { color: var(--mid); }
+    .transition-area {
+      font-family: 'Syne', sans-serif; font-size: 2.1rem; font-weight: 800;
+      line-height: 1; margin-bottom: 0.3rem; letter-spacing: -0.02em;
+    }
+    .transition-unit {
+      font-family: var(--mono); font-size: 0.68rem; color: var(--mid);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .transition-bar { margin-top: 1.1rem; height: 4px; background: var(--light); border-radius: 2px; overflow: hidden; }
+    .transition-bar-fill { height: 100%; border-radius: 2px; transition: width 1.8s cubic-bezier(0.16,1,0.3,1); }
+    .fill-red { background: var(--red); }
+    .fill-orange { background: var(--gold); }
+    .fill-brown { background: #8d6e63; }
+    .fill-green { background: var(--accent); }
+
+    /* MAPS */
+    .maps-section { background: var(--white); }
+    .maps-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .map-panel { border: 1px solid var(--border); overflow: hidden; }
+    .map-panel-header {
+      padding: 1rem 1.4rem; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .map-panel-title { font-family: 'Syne', sans-serif; font-size: 0.93rem; font-weight: 700; }
+    .map-placeholder-label {
+      width: 100%; aspect-ratio: 4/3;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.5rem; background: var(--light);
+      font-family: var(--mono); font-size: 0.7rem; color: var(--mid); letter-spacing: 0.06em;
+    }
+    .placeholder-icon { font-size: 2rem; opacity: 0.3; }
+    .map-legend-strip {
+      padding: 0.85rem 1.4rem; display: flex; gap: 1rem; flex-wrap: wrap;
+      border-top: 1px solid var(--border);
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.38rem; font-size: 0.76rem; color: var(--mid); }
+    .legend-swatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
+
+    /* VALIDATION */
+    .validation-section { background: var(--light); }
+    .validation-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 4rem; align-items: start; }
+    .validation-quote {
+      background: var(--white); border-left: 4px solid var(--accent);
+      padding: 1.6rem; margin-bottom: 1.2rem;
+    }
+    .validation-quote p { font-size: 0.9rem; line-height: 1.75; color: var(--mid); font-style: italic; margin-bottom: 0.7rem; }
+    .validation-quote cite {
+      font-family: var(--mono); font-size: 0.68rem; color: var(--accent);
+      letter-spacing: 0.06em; font-style: normal; text-transform: uppercase;
+    }
+    .comparison-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    .comparison-table th {
+      font-family: var(--mono); font-size: 0.67rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--mid); padding: 0.6rem 1rem; border-bottom: 2px solid var(--black); text-align: left;
+    }
+    .comparison-table td { padding: 0.82rem 1rem; border-bottom: 1px solid var(--border); }
+    .comparison-table tr:hover td { background: var(--accent-pale); }
+    .check { color: var(--accent); font-weight: 600; }
+    .note { color: var(--mid); font-size: 0.78rem; }
+
+    /* TECH */
+    .tech-section { background: var(--white); }
+    .tech-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1.5px; background: var(--border); border: 1px solid var(--border);
+    }
+    .tech-card { background: var(--white); padding: 1.65rem 1.4rem; transition: background 0.2s; }
+    .tech-card:hover { background: var(--accent-pale); }
+    .tech-icon { font-size: 1.5rem; margin-bottom: 0.65rem; }
+    .tech-name { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 0.28rem; }
+    .tech-desc { font-size: 0.79rem; color: var(--mid); line-height: 1.55; }
+
+    /* CTA */
+    .cta-section {
+      background: var(--black); padding: 6rem 4rem;
+      display: grid; grid-template-columns: 1fr auto; gap: 3rem; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: 'ABUJA'; position: absolute; right: -2rem; top: 50%; transform: translateY(-50%);
+      font-family: 'Syne', sans-serif; font-size: 12rem; font-weight: 800;
+      color: rgba(255,255,255,0.03); letter-spacing: -0.05em;
+      pointer-events: none; user-select: none;
+    }
+    .cta-tag {
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--accent-light); margin-bottom: 1rem;
+    }
+    .cta-title {
+      font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800;
+      color: white; line-height: 1.12; letter-spacing: -0.025em; margin-bottom: 1rem;
+    }
+    .cta-sub { font-size: 0.96rem; color: rgba(255,255,255,0.45); line-height: 1.75; max-width: 500px; }
+    .cta-buttons { display: flex; gap: 1rem; flex-direction: column; }
+    .btn-white {
+      background: white; color: var(--black); padding: 0.9rem 2rem;
+      font-family: 'DM Sans', sans-serif; font-size: 0.87rem; font-weight: 600;
+      letter-spacing: 0.04em; text-decoration: none; display: inline-block;
+      white-space: nowrap; transition: all 0.25s;
+    }
+    .btn-white:hover { background: var(--accent-light); color: white; transform: translateY(-2px); }
+    .btn-ghost {
+      background: transparent; color: rgba(255,255,255,0.5); padding: 0.9rem 2rem;
+      border: 1px solid rgba(255,255,255,0.17);
+      font-family: 'DM Sans', sans-serif; font-size: 0.87rem; font-weight: 500;
+      text-decoration: none; display: inline-block; white-space: nowrap; transition: all 0.25s;
+    }
+    .btn-ghost:hover { border-color: white; color: white; }
+
+    /* FOOTER */
+    footer {
+      background: var(--black); border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 2rem 4rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    footer p { font-family: var(--mono); font-size: 0.7rem; color: rgba(255,255,255,0.26); letter-spacing: 0.05em; }
+    footer a { color: var(--accent-light); text-decoration: none; }
+
+    /* ANIMATIONS */
+    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.65s ease, transform 0.65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* RESPONSIVE */
+    @media (max-width: 960px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .nav-back { display: none; }
+      .nav-hamburger { display: flex; }
+      .nav-mobile-menu { display: flex; }
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-left { padding: 5rem 1.5rem 3rem; max-width: 100%; }
+      .hero-title { font-size: 2.4rem; }
+      .hero-right { min-height: 260px; }
+      .stats-band { grid-template-columns: repeat(2,1fr); padding: 2rem 1.5rem; }
+      section { padding: 4rem 1.5rem; }
+      .context-section { grid-template-columns: 1fr; gap: 2.5rem; }
+      .results-grid { grid-template-columns: 1fr; }
+      .maps-compare { grid-template-columns: 1fr; }
+      .validation-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .cta-section { grid-template-columns: 1fr; padding: 4rem 1.5rem; }
+      .cta-title { font-size: 2rem; }
+      footer { flex-direction: column; gap: 1rem; text-align: center; padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="https://georgezirra.github.io/my_portfolio/" class="nav-logo">My GIS Portfolio</a>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#methodology">Method</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#maps">Maps</a></li>
+    </ul>
+    <a href="https://georgezirra.github.io/my_portfolio/" class="nav-back">← Back to my Portfolio</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- MOBILE DROPDOWN MENU -->
+  <div class="nav-mobile-menu" id="mobileMenu" role="navigation">
+    <a href="#overview"    onclick="closeMenu()">Overview</a>
+    <a href="#methodology" onclick="closeMenu()">Method</a>
+    <a href="#results"     onclick="closeMenu()">Results</a>
+    <a href="#maps"        onclick="closeMenu()">Maps</a>
+    <a href="https://georgezirra.github.io/my_portfolio/" class="mobile-back">← Back to my Portfolio</a>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero" id="overview">
+    <div class="hero-left">
+      <div class="hero-tag">Remote Sensing · Change Detection · GEE</div>
+      <h1 class="hero-title">
+        Mapping Abuja's<br/>
+        <span>Urban Growth</span><br/>
+        2015 – 2024
+      </h1>
+      <p class="hero-subtitle">
+        I analyzed land use and land cover changes across Nigeria's Federal Capital Territory using Landsat 8 and Sentinel-2 satellite imagery — uncovering how one of Africa's fastest-growing capitals reshaped its landscape over nine years.
+      </p>
+      <div class="hero-meta">
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Study Area</span>
+          <span class="hero-meta-value">FCT Abuja, Nigeria</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Period</span>
+          <span class="hero-meta-value">2015 → 2024</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Platform</span>
+          <span class="hero-meta-value">Google Earth Engine</span>
+        </div>
+        <div class="hero-meta-item">
+          <span class="hero-meta-label">Classifier</span>
+          <span class="hero-meta-value">Random Forest</span>
+        </div>
+      </div>
+      <div class="hero-buttons">
+        <a href="#" class="btn-primary">View GEE Script</a>
+        <a href="#results" class="btn-outline">See My Results</a>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="map-grid">
+        <div class="map-card">
+           
+          <div class="map-card-img"> <img src="LULC_2015.png" style="width:100%;display:block;" alt="LULC 2015"> </div>
+          <div class="map-card-label">LULC · 2015</div>
+        </div>
+        <div class="map-card">
+          
+          <div class="map-card-img map2024"><img src="LULC_2024.png" style="width:100%;display:block;" alt="LULC 2024"> </div>
+          <div class="map-card-label">LULC · 2024</div>
+        </div>
+        <div class="map-card" style="grid-column: span 2;">
+           
+          <div class="map-card-img" style="aspect-ratio:8/3;background:linear-gradient(135deg,#ffcdd2 0%,#ffcc80 50%,#c8e6c9 100%);"> <img src="Change_2015_2024.png" style="width:100%;display:block;" alt="Change Map"> </div>
+          <div class="map-card-label">Urban Expansion · 2015–2024</div>
+        </div>
+      </div>
+      <div class="hero-bg-text">FCT</div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-band">
+    <div class="stat-item reveal">
+      <div class="stat-number"><span class="accent" data-target="1596">0</span> km²</div>
+      <div class="stat-label">Urban Area Gained</div>
+    </div>
+    <div class="stat-item reveal reveal-delay-1">
+      <div class="stat-number"><span class="accent" data-target="7">0</span>×</div>
+      <div class="stat-label">Urban Growth Factor</div>
+    </div>
+    <div class="stat-item reveal reveal-delay-2">
+      <div class="stat-number"><span data-target="97">0</span>.5%</div>
+      <div class="stat-label">2024 Classification Accuracy</div>
+    </div>
+    <div class="stat-item reveal reveal-delay-3">
+      <div class="stat-number"><span data-target="1006">0</span></div>
+      <div class="stat-label">Training Sample Points</div>
+    </div>
+  </div>
+
+  <!-- CONTEXT -->
+  <section class="context-section" id="context">
+    <div>
+      <div class="section-tag">Why I chose this study</div>
+      <h2 class="section-title">The Case for Abuja</h2>
+      <p class="section-intro">
+        I chose Abuja's Federal Capital Territory as my study area because it represents one of the most dramatic urban transformations on the African continent. Since its designation as Nigeria's capital, the FCT has attracted millions of residents and undergone explosive growth — making it an ideal case study for demonstrating change detection methodology with real-world significance.
+      </p>
+    </div>
+    <div class="context-facts">
+      <div class="fact-row reveal">
+        <div class="fact-icon">🏙️</div>
+        <div class="fact-content">
+          <h4>One of Africa's Fastest-Growing Capitals</h4>
+          <p>Abuja consistently ranks among the most rapidly urbanizing cities on the continent, with the FCT attracting over 6 million residents.</p>
+        </div>
+      </div>
+      <div class="fact-row reveal reveal-delay-1">
+        <div class="fact-icon">🌿</div>
+        <div class="fact-content">
+          <h4>Significant Vegetation Loss</h4>
+          <p>My analysis captured over 424 km² of vegetation-to-open-land conversion in just nine years — consistent with long-term deforestation trends documented in the FCT since the 1980s.</p>
+        </div>
+      </div>
+      <div class="fact-row reveal reveal-delay-2">
+        <div class="fact-icon">🛰️</div>
+        <div class="fact-content">
+          <h4>Multi-Sensor Approach</h4>
+          <p>I used Landsat 8 for 2015 and Sentinel-2 for 2024, applying band harmonization and spectral index normalization to ensure robust cross-sensor comparability.</p>
+        </div>
+      </div>
+      <div class="fact-row reveal reveal-delay-3">
+        <div class="fact-icon">📍</div>
+        <div class="fact-content">
+          <h4>Full FCT Coverage (~8,000 km²)</h4>
+          <p>I analyzed the entire Federal Capital Territory — not just the municipal area — to capture the full scope of urban sprawl into peripheral zones like Kuje, Gwagwalada, and Bwari.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- METHODOLOGY -->
+  <section class="methodology-section" id="methodology">
+    <div class="section-tag">Methodology</div>
+    <h2 class="section-title">How I Built This</h2>
+    <p class="section-intro">
+      I implemented a rigorous multi-step workflow entirely in Google Earth Engine — from raw satellite imagery acquisition through to validated classified outputs and area statistics.
+    </p>
+    <div class="method-grid">
+      <div class="method-step reveal">
+        <div class="step-number">01</div>
+        <div class="step-title">Image Acquisition & Pre-processing</div>
+        <p class="step-desc">I generated dry season composites (Nov–Mar) using median pixel compositing with cloud masking for both sensors, deliberately targeting the dry season to minimize cloud contamination over the FCT.</p>
+        <span class="step-badge">Cloud Masking</span>
+      </div>
+      <div class="method-step reveal reveal-delay-1">
+        <div class="step-number">02</div>
+        <div class="step-title">Band Harmonization & Spectral Indices</div>
+        <p class="step-desc">I renamed Landsat 8 bands to match Sentinel-2 equivalents, then computed NDVI, NDBI, and MNDWI and stacked them — giving the classifier 9 input features and improving cross-sensor class separability.</p>
+        <span class="step-badge">9 Input Features</span>
+      </div>
+      <div class="method-step reveal reveal-delay-2">
+        <div class="step-number">03</div>
+        <div class="step-title">Year-Specific Training Samples</div>
+        <p class="step-desc">I digitized 1,006 training points separately on the 2015 and 2024 imagery, ensuring each classifier learned the spectral signature of its own sensor rather than the other year's image.</p>
+        <span class="step-badge">1,006 Points</span>
+      </div>
+      <div class="method-step reveal reveal-delay-3">
+        <div class="step-number">04</div>
+        <div class="step-title">Random Forest Classification</div>
+        <p class="step-desc">I trained independent 100-tree Random Forest classifiers for each year, classifying four LULC classes: Urban, Vegetation, Open Land, and Water.</p>
+        <span class="step-badge">100 Trees</span>
+      </div>
+      <div class="method-step reveal">
+        <div class="step-number">05</div>
+        <div class="step-title">Accuracy Assessment</div>
+        <p class="step-desc">I used a 70/30 train-validation split to generate confusion matrices, overall accuracy, Kappa coefficients, and per-class producer and consumer accuracies — confirming both years exceeded the 80% publishable threshold.</p>
+        <span class="step-badge">70/30 Split</span>
+      </div>
+      <div class="method-step reveal reveal-delay-1">
+        <div class="step-number">06</div>
+        <div class="step-title">Change Detection & Area Statistics</div>
+        <p class="step-desc">I combined both classified maps pixel-by-pixel to generate a transition matrix, then used GEE's pixel area reducer to calculate the area of every LULC transition in km².</p>
+        <span class="step-badge">Post-Classification</span>
+      </div>
+    </div>
+    <div style="margin-top:3rem;">
+      <h3 class="chart-title">Data Sources I Used</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>Year</th><th>Sensor</th><th>Resolution</th><th>Dataset ID</th><th>Date Range</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>2015</strong></td>
+            <td><span class="sensor-tag tag-l8">Landsat 8 OLI</span></td>
+            <td>30m</td>
+            <td style="font-family:var(--mono);font-size:0.74rem;">LANDSAT/LC08/C02/T1_L2</td>
+            <td>Nov 2015 – Mar 2016</td>
+          </tr>
+          <tr>
+            <td><strong>2024</strong></td>
+            <td><span class="sensor-tag tag-s2">Sentinel-2 MSI</span></td>
+            <td>10m</td>
+            <td style="font-family:var(--mono);font-size:0.74rem;">COPERNICUS/S2_SR_HARMONIZED</td>
+            <td>Nov 2024 – Feb 2025</td>
+          </tr>
+          <tr>
+            <td><strong>Boundary</strong></td>
+            <td><span class="sensor-tag" style="background:#f3f3f3;color:#555;">FAO GAUL</span></td>
+            <td>Vector</td>
+            <td style="font-family:var(--mono);font-size:0.74rem;">FAO/GAUL/2015/level1</td>
+            <td>FCT Boundary</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="results-section" id="results">
+    <div class="section-tag">Results</div>
+    <h2 class="section-title">What I Found</h2>
+    <p class="section-intro">
+      Both of my classifications exceeded the 80% accuracy threshold widely accepted for publishable LULC studies. The results reveal a dramatic urban transformation across the FCT between 2015 and 2024.
+    </p>
+    <div class="results-grid">
+      <div class="accuracy-cards">
+        <h3 class="chart-title">My Classification Accuracy</h3>
+        <div class="accuracy-card l8 reveal">
+          <div class="accuracy-card-header">
+            <div>
+              <div class="accuracy-card-title">2015 Classification</div>
+              <div class="accuracy-card-sub">Landsat 8 OLI · 30m Resolution</div>
+            </div>
+            <span class="sensor-tag tag-l8">L8</span>
+          </div>
+          <div class="accuracy-metrics">
+            <div><div class="metric-value gold">89.4%</div><div class="metric-label">Overall Accuracy</div></div>
+            <div><div class="metric-value gold">0.85</div><div class="metric-label">Kappa Coefficient</div></div>
+          </div>
+          <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:0%" data-width="89.4%"></div></div>
+        </div>
+        <div class="accuracy-card s2 reveal reveal-delay-1">
+          <div class="accuracy-card-header">
+            <div>
+              <div class="accuracy-card-title">2024 Classification</div>
+              <div class="accuracy-card-sub">Sentinel-2 MSI · 10m Resolution</div>
+            </div>
+            <span class="sensor-tag tag-s2">S2</span>
+          </div>
+          <div class="accuracy-metrics">
+            <div><div class="metric-value blue">97.5%</div><div class="metric-label">Overall Accuracy</div></div>
+            <div><div class="metric-value blue">0.96</div><div class="metric-label">Kappa Coefficient</div></div>
+          </div>
+          <div class="accuracy-bar"><div class="accuracy-bar-fill" style="width:0%" data-width="97.5%"></div></div>
+        </div>
+      </div>
+      <div class="reveal">
+        <h3 class="chart-title">Urban Area Change (km²)</h3>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-meta"><span class="bar-name">🔴 Urban / Built-up</span><span class="bar-value">251.8 → 1,847.6 km²</span></div>
+            <div class="bar-track"><div class="bar-fill bar-2015" style="width:0%" data-width="13.6%"></div></div>
+            <div class="bar-track" style="margin-top:4px;"><div class="bar-fill bar-2024" style="width:0%" data-width="100%"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-meta"><span class="bar-name">🟢 Vegetation</span><span class="bar-value">Significant decline</span></div>
+            <div class="bar-track"><div class="bar-fill bar-2015" style="width:0%" data-width="75%"></div></div>
+            <div class="bar-track" style="margin-top:4px;"><div class="bar-fill bar-2024" style="width:0%" data-width="46%"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-meta"><span class="bar-name">🟡 Open Land</span><span class="bar-value">Major conversion to urban</span></div>
+            <div class="bar-track"><div class="bar-fill bar-2015" style="width:0%" data-width="62%"></div></div>
+            <div class="bar-track" style="margin-top:4px;"><div class="bar-fill bar-2024" style="width:0%" data-width="20%"></div></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-meta"><span class="bar-name">🔵 Water Bodies</span><span class="bar-value">Relatively stable</span></div>
+            <div class="bar-track"><div class="bar-fill bar-2015" style="width:0%" data-width="8%"></div></div>
+            <div class="bar-track" style="margin-top:4px;"><div class="bar-fill bar-2024" style="width:0%" data-width="7%"></div></div>
+          </div>
+        </div>
+        <div class="bar-legend">
+          <span class="legend-dot y2015">2015 (Landsat 8)</span>
+          <span class="legend-dot y2024">2024 (Sentinel-2)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRANSITIONS -->
+  <section class="transitions-section">
+    <div class="section-tag">Land Cover Transitions</div>
+    <h2 class="section-title">What Converted to What</h2>
+    <p class="section-intro">
+      By combining both classified maps pixel-by-pixel, I identified the dominant pathways of land transformation — revealing not just that change occurred, but precisely how each land cover type shifted between 2015 and 2024.
+    </p>
+    <div class="transition-grid">
+      <div class="transition-card reveal">
+        <div class="transition-arrow">
+          <span class="from-tag tag-open">Open Land</span>
+          <span class="arrow-icon">→</span>
+          <span class="to-tag tag-urban">Urban</span>
+        </div>
+        <div class="transition-area">1,175</div>
+        <div class="transition-unit">km² converted</div>
+        <div class="transition-bar"><div class="transition-bar-fill fill-orange" style="width:0%" data-width="100%"></div></div>
+      </div>
+      <div class="transition-card reveal reveal-delay-1">
+        <div class="transition-arrow">
+          <span class="from-tag tag-veg">Vegetation</span>
+          <span class="arrow-icon">→</span>
+          <span class="to-tag tag-urban">Urban</span>
+        </div>
+        <div class="transition-area">440</div>
+        <div class="transition-unit">km² converted</div>
+        <div class="transition-bar"><div class="transition-bar-fill fill-red" style="width:0%" data-width="37.4%"></div></div>
+      </div>
+      <div class="transition-card reveal reveal-delay-2">
+        <div class="transition-arrow">
+          <span class="from-tag tag-veg">Vegetation</span>
+          <span class="arrow-icon">→</span>
+          <span class="to-tag" style="background:#fbe9e7;color:#bf360c;">Open Land</span>
+        </div>
+        <div class="transition-area">424</div>
+        <div class="transition-unit">km² degraded</div>
+        <div class="transition-bar"><div class="transition-bar-fill fill-brown" style="width:0%" data-width="36.1%"></div></div>
+      </div>
+      <div class="transition-card reveal reveal-delay-3">
+        <div class="transition-arrow">
+          <span class="from-tag tag-urban">Urban</span>
+          <span class="arrow-icon">→</span>
+          <span class="to-tag tag-veg">Vegetation</span>
+        </div>
+        <div class="transition-area">11</div>
+        <div class="transition-unit">km² revegetated</div>
+        <div class="transition-bar"><div class="transition-bar-fill fill-green" style="width:0%" data-width="0.9%"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAPS -->
+  <section class="maps-section" id="maps">
+    <div class="section-tag">My Classified Maps</div>
+    <h2 class="section-title">Visual Output</h2>
+    <p class="section-intro">
+      Side-by-side classified LULC maps for 2015 and 2024. I exported both as GeoTIFFs from Google Earth Engine — download links available on GitHub.
+    </p>
+    <div class="maps-compare">
+      <div class="map-panel reveal">
+        <div class="map-panel-header">
+          <span class="map-panel-title">LULC Classification — 2015</span>
+          <span class="sensor-tag tag-l8">Landsat 8 · 30m</span>
+        </div>
+        
+        <div class="map-placeholder-label">
+          
+          <span><img src="LULC_2015.png" style="width:100%;display:block;" alt="LULC 2015"></span>
+        </div>
+        <div class="map-legend-strip">
+          <div class="legend-item"><div class="legend-swatch" style="background:#e53935;"></div>Urban</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#2e7d32;"></div>Vegetation</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#f9a825;"></div>Open Land</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#1565c0;"></div>Water</div>
+        </div>
+      </div>
+      <div class="map-panel reveal reveal-delay-1">
+        <div class="map-panel-header">
+          <span class="map-panel-title">LULC Classification — 2024</span>
+          <span class="sensor-tag tag-s2">Sentinel-2 · 10m</span>
+        </div>
+        
+        <div class="map-placeholder-label">
+        
+          <span><img src="LULC_2024.png" style="width:100%;display:block;" alt="LULC 2024"></span>
+        </div>
+        <div class="map-legend-strip">
+          <div class="legend-item"><div class="legend-swatch" style="background:#e53935;"></div>Urban</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#2e7d32;"></div>Vegetation</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#f9a825;"></div>Open Land</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#1565c0;"></div>Water</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <!-- TECH -->
+  <section class="tech-section">
+    <div class="section-tag">Tools & Technologies</div>
+    <h2 class="section-title">What I Used</h2>
+    <div class="tech-grid">
+      <div class="tech-card reveal">
+        <div class="tech-icon">🌍</div>
+        <div class="tech-name">Google Earth Engine</div>
+        <div class="tech-desc">My primary platform for cloud-based geospatial processing — all analysis performed server-side at planetary scale.</div>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="tech-icon">🛰️</div>
+        <div class="tech-name">Landsat 8 OLI</div>
+        <div class="tech-desc">USGS/NASA 30m sensor for my 2015 baseline. Collection 2 Level-2 Surface Reflectance.</div>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="tech-icon">🔭</div>
+        <div class="tech-name">Sentinel-2 MSI</div>
+        <div class="tech-desc">ESA Copernicus 10m sensor for my 2024 analysis. Harmonized Surface Reflectance product.</div>
+      </div>
+      <div class="tech-card reveal reveal-delay-3">
+        <div class="tech-icon">🌲</div>
+        <div class="tech-name">Random Forest</div>
+        <div class="tech-desc">100-tree ensemble classifier trained independently per year on sensor-specific spectral signatures.</div>
+      </div>
+      <div class="tech-card reveal">
+        <div class="tech-icon">📐</div>
+        <div class="tech-name">QGIS / ArcGIS Pro</div>
+        <div class="tech-desc">Post-processing, cartographic output and spatial data management.</div>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="tech-icon">💻</div>
+        <div class="tech-name">JavaScript (GEE API)</div>
+        <div class="tech-desc">Full classification pipeline, change detection, accuracy assessment and export scripting.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div>
+      <div class="cta-tag">Explore This Project</div>
+      <h2 class="cta-title">See the Full Code<br/>& Methodology</h2>
+      <p class="cta-sub">
+        My complete GEE script, training sample methodology, accuracy tables, and exported GeoTIFF outputs are all available on GitHub. The script is fully reproducible — clone it and run it on your own study area.
+      </p>
+    </div>
+    <div class="cta-buttons">
+      <a href="#" class="btn-white">View on GitHub →</a>
+      <a href="#" class="btn-ghost">Run in GEE ↗</a>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 · George Vahyella Zirra GIS Portfolio · Abuja LULC Change Detection</p>
+    <p>Built with Google Earth Engine · <a href="#overview">← Get back to the Top</a></p>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          entry.target.querySelectorAll('[data-width]').forEach(bar => {
+            setTimeout(() => { bar.style.width = bar.dataset.width; }, 250);
+          });
+        }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Accuracy bars
+    document.querySelectorAll('.accuracy-bar-fill[data-width]').forEach(bar => {
+      new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) setTimeout(() => { bar.style.width = bar.dataset.width; }, 400); });
+      }, { threshold: 0.5 }).observe(bar);
+    });
+
+    // Count-up
+    function countUp(el, target, duration = 1800) {
+      let start = 0;
+      const step = target / (duration / 16);
+      const timer = setInterval(() => {
+        start += step;
+        if (start >= target) { el.textContent = target.toLocaleString(); clearInterval(timer); }
+        else { el.textContent = Math.floor(start).toLocaleString(); }
+      }, 16);
+    }
+    const statObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { countUp(e.target, parseInt(e.target.dataset.target)); statObs.unobserve(e.target); }
+      });
+    }, { threshold: 0.5 });
+    document.querySelectorAll('[data-target]').forEach(n => statObs.observe(n));
+    // Hamburger menu
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburger.classList.toggle('open', isOpen);
+      hamburger.setAttribute('aria-expanded', isOpen);
+    });
+
+    function closeMenu() {
+      mobileMenu.classList.remove('open');
+      hamburger.classList.remove('open');
+      hamburger.setAttribute('aria-expanded', false);
+    }
+
+    // Close menu on outside click
+    document.addEventListener('click', (e) => {
+      if (!hamburger.contains(e.target) && !mobileMenu.contains(e.target)) {
+        closeMenu();
+      }
+    });
+  </script>
+</body>
+</html>
